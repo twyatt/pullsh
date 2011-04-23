@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<installer-script minSpecVersion="1.000000" authoringTool="com.apple.PackageMaker" authoringToolVersion="3.0.4" authoringToolBuild="179">
+    <title>pullsh Installer</title>
+    <options customize="allow" allow-external-scripts="no" rootVolumeOnly="true"/>
+    <script>
+function pm_choiceconfiguration_selected() {
+  result = true;
+  result = result &amp;&amp; !(system.files.fileExistsAtPath('/usr/local/etc/pullsh.conf') == true);
+  return result;
+}</script>
+    <choices-outline>
+        <line choice="choiceapplication"/>
+        <line choice="choiceconfiguration"/>
+        <line choice="choicelaunchagent"/>
+    </choices-outline>
+    <choice id="choiceapplication" title="pullsh" description="Installs the primary pullsh client script." start_enabled="false">
+        <pkg-ref id="com.traviswyatt.pullsh.Application"/>
+    </choice>
+    <choice id="choiceconfiguration" title="pullsh Configuration" description="Installs the default pullsh configuration to /usr/local/etc/pullsh.conf." start_selected="false" start_enabled="false" selected="pm_choiceconfiguration_selected()">
+        <pkg-ref id="com.traviswyatt.pullsh.Configuration"/>
+    </choice>
+    <choice id="choicelaunchagent" title="Launch Agent" description="Enables pullsh to be run at start up and every hour.">
+        <pkg-ref id="com.traviswyatt.pullsh.LaunchAgent"/>
+    </choice>
+    <pkg-ref id="com.traviswyatt.pullsh.Application" installKBytes="4" version="1.0">file:./Contents/Packages/pullsh.pkg</pkg-ref>
+    <pkg-ref id="com.traviswyatt.pullsh.Configuration" installKBytes="4" version="1.0">file:./Contents/Packages/pullsh-1.pkg</pkg-ref>
+    <pkg-ref id="com.traviswyatt.pullsh.LaunchAgent" installKBytes="4" version="1.0" auth="Root" onConclusion="RequireRestart">file:./Contents/Packages/comtraviswyattpullsh.pkg</pkg-ref>
+</installer-script>

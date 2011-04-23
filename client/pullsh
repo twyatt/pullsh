@@ -1,0 +1,92 @@
+#!/bin/bash
+
+CONFIG_PATH="/usr/local/etc"
+CONFIG="${CONFIG_PATH}/pullsh.conf"
+
+E_OPTERR=65
+E_CFGERR=66
+E_TUNNEL=67
+
+
+# display error message
+function e {
+	echo "$1" >&2
+}
+
+# display info message
+function i {
+	if $VERBOSE; then
+		echo "$1"
+	fi
+}
+
+function load_configuration {
+	if [ -r ${CONFIG} ]; then
+		i "Loading configuration: ${CONFIG}"
+		source ${CONFIG}
+	fi
+	
+	set_default_configuration
+	check_configuration
+}
+
+function set_default_configuration {
+	HEADER=${HEADER:-"X-Execute"}
+	HEADERS=${HEADERS:-"/tmp/pullsh.headers"}
+	SCRIPT=${SCRIPT:-"/tmp/pullsh.script"}
+	
+	WGET=${WGET:-`which wget`}
+	WGET=${WGET:-"/usr/local/bin/wget"}
+	RM=${RM:-`which rm`}
+	GREP=${GREP:-`which grep`}
+}
+
+function check_configuration {
+	if [ -z "${URL}" ]; then
+		missing_config "URL"
+	fi
+}
+
+function missing_config {
+	e "Missing $1 configuration directive in \"${CONFIG}\"."
+	exit $E_CFGERR
+}
+
+function fetch_script {
+	i "Fetching script: ${URL}"
+	download=$( ${WGET} -SO- --tries=20 --wait=1m ${URL} 2> ${HEADERS} )
+}
+
+function execute_script {
+	if test -r ${HEADERS} -a -f ${HEADERS}; then
+		i "Reading headers."
+		count=$( ${GREP} --max-count=1 --count "${HEADER}" ${HEADERS} )
+		
+		if test ${count} -gt 0; then
+			i "Writing script to \"${SCRIPT}\"."
+			echo "${download}" > ${SCRIPT}
+			chmod 755 ${SCRIPT}
+			
+			i "Executing script."
+			${SCRIPT}
+		else
+			i "Script execution header not found: ${HEADER}"
+		fi
+	fi
+}
+
+function clean_up {
+	if test -f ${HEADERS}; then
+		${RM} ${HEADERS}
+	fi
+	
+	if test -f ${SCRIPT}; then
+		${RM} ${SCRIPT}
+	fi
+}
+
+
+load_configuration
+fetch_script
+execute_script
+clean_up
